@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <title>VictorPredictor</title>
+
+    <!-- Bootstrap core CSS -->
+<link href="/static/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<link href="/static/css/vp.css" rel="stylesheet">
+
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+    </style>
+    <!-- Custom styles for this template -->
+    <link href="/static/css/album.css" rel="stylesheet">
+  </head>
+  <body>
+    <header>
+  <div class="collapse bg-dark" id="navbarHeader">
+    <div class="container">
+      <div class="row">
+        <div class="col-sm-8 col-md-7 py-4">
+          <h4 class="text-white">About</h4>
+          <p class="text-muted">We predict some cool stuff about fan-voted science fiction literature awards.</p>
+        </div>
+        <div class="col-sm-4 offset-md-1 py-4">
+          <h4 class="text-white">Contact</h4>
+          <ul class="list-unstyled">
+            <li><a href="#" class="text-white">Follow on Twitter</a></li>
+            <li><a href="#" class="text-white">Like on Facebook</a></li>
+            <li><a href="#" class="text-white">Email me</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="navbar navbar-dark bg-dark shadow-sm">
+    <div class="container d-flex justify-content-between">
+      <a href="#" class="navbar-brand d-flex align-items-center">
+        <strong>VictorPredictor</strong>
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarHeader" aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main role="main">
+
+  <section class="jumbotron text-center">
+    <div class="container">
+       <p class="lead">A list of books, sorted by their likelihood to do well in fan-voted speculative fiction book awards.</p>
+    
+      <button type="button" class="collapsible lead text-muted">Change search</button>
+      <div class="collapsible_content">
+      <form action="/index.html" method="get">
+            <p class="lead text-muted">Genres:
+{% for genre in genres %}
+            <input type="checkbox" name="genres" value="{{ genre['index'] }}" {{ genre['checked']}}> {{genre['name']}}
+{% if loop.index is divisibleby 3 %}
+            <br />
+{% endif %}            
+            {% endfor %}
+            </p>
+            <p class="lead text-muted">Reading levels:
+            {% for level in levels %}
+            <input type="checkbox" name="levels" value="{{ level['index'] }}" {{ level['checked']}}> {{level['name']}}
+            {% endfor %}
+            </p>
+            <input type="submit" text="Go!">
+        </form>
+        </div>
+      <div><p>&nbsp;</p></div>
+      <button type="button" class="collapsible lead text-muted">Change scoring</button>
+      <div class="collapsible_content">
+      <form action="/index.html" method="get">
+            <p class="lead text-muted">
+{% for ig in ignore %}
+            <input type="checkbox" name="ignore" value="{{ ig['index'] }}" {{ ig['checked']}}> {{ig['name']}}<sup><a class="more_info" title="{{ ig['alt'] }}" alt="{{ ig['alt'] }}">more info</a></sup><BR />
+            {% endfor %}
+            </p>
+            <input type="submit" text="Go!">
+        </form>
+        </div>
+      </p>
+    </div>
+  </section>
+
+  <div class="album py-5 bg-light">
+    <div class="container">
+      <div class='row gutter10'> 
+                        <div class="col"></div>
+                        <div class="col-4 grid-col"><b><a href="{{ title_url }}">Title{{ title_arrow }}</a></b></div>
+                        <div class="col-4 grid-col"><b><a href="{{ author_url }}">Author{{ author_arrow }}</a></b></div>
+                        <div class="col-1 grid-col"><b><a href="{{ score_url }}">Score{{ score_arrow }}</a></b></div>
+                        <!-- <div class="col-3 grid-col"><b>Links</b></div> -->
+                        <div class="col"></div>
+      </div>
+      {% for book in books %}
+      <div class='row gutter10'> 
+                        <div class="col"></div>
+                        <div class="col-4 grid-col">{{ book['title'] }}</div>
+                        <div class="col-4 grid-col">{{ book['author'] }}</div>
+                        <div class="col-1 grid-col">
+                        {% if book['score'] > 0.5 %}
+                        <b>
+                        {% endif %}
+                        <span style="color: {{book['color']}}">{{ "%.2f"|format(100*book['score']) }}</span>
+                        {% if book['score'] > 0.5 %}
+                        </b>
+                        {% endif %}
+                        </div>
+                        <div class="col"></div>
+                        <!-- <div class="col-3 grid-col">{{ book['link'] }}</div> -->
+      </div>
+      {% endfor %}
+      {% if npages > 1 %}
+      <div class='row'>
+          <div class='col-2'>      
+          {% if curr_page > 1 %}
+          <a href="{{ prev_url }}"> &#8592; Previous</a>
+          {% endif %}
+          </div><div class="col"></div><div class='col-2' style='text-align: right'>
+          {% if curr_page < npages %}
+          <a href="{{ next_url }}"> Next &#8594;</a>
+          {% endif %}
+          </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</main>
+
+<footer class="text-muted">
+  <div class="container">
+    <p class="float-right">
+      <a href="#">Back to top</a>
+    </p>
+  </div>
+</footer>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+      <script src="/static/js/bootstrap.bundle.min.js" integrity="sha384-xrRywqdh3PHs8keKZN+8zzc5TX0GRTLCcmivcbNJWm2rs5C8PRhcEn3czEjhAO9o" crossorigin="anonymous"></script>
+      <script src="/static/js/vp.js"></script>
+</body>
+</html>
+

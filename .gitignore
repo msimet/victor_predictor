@@ -116,3 +116,7 @@ get*.py
 # notes and reminders
 *.txt
 *.dat
+
+# not my code
+bootstrap*
+album.css
