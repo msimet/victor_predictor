@@ -106,7 +106,13 @@ venv.bak/
 # pickles
 *.p
 *.npy
+*.gensim*
+*.df
 
 # downloader scripts
 goodreads*.py
 get*.py
+
+# notes and reminders
+*.txt
+*.dat
