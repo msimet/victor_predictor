@@ -2,32 +2,27 @@ from flask import render_template
 from flask import request
 from flask import Markup
 from application import app
-from sqlalchemy import create_engine
-from sqlalchemy_utils import database_exists, create_database
 import pandas as pd
 import psycopg2
-import pickle
+import os
 import difflib
 import numpy as np
 from matplotlib import cm
 from matplotlib.colors import rgb2hex
 
-with open('pg_credentials.p', 'rb') as f:
-    pg_credentials = pickle.load(f)
-user = pg_credentials['username']
-password = pg_credentials['password']
-host = 'localhost'
+username = os.environ['rds_username']
+password = os.environ['rds_password']
+host = os.environ['rds_host']
 dbname = 'goodreads_db'
 port = '5432'
-engine = create_engine('postgresql://{}:{}@{}:{}/{}'.format(user, password, host, port, dbname))
 
 con = None
-con = psycopg2.connect(database=dbname, user=user, host=host, password=password)
+con = psycopg2.connect(database=dbname, user=username, host=host, password=password)
 
 max_nrows = 25
 
-genres = ['Adventure/fantasy', 'Hard SF', 'Dystopia', 'Horror', 'SF romance', "Space SF", 'Traditional fantasy', 'High Fantasy']
-genre_indices = [0,1,2,3,4,5,6,7,8,9]
+genres = ['Hard SF', "Space SF", 'Dystopia', 'High fantasy', 'Adventure', 'Urban fantasy', 'Literary', 'Mystery/horror', 'Paranormal romance', "Fantasy romance"]
+genre_indices = [2,6,3,0,9,7,8,4,1,5]
 genredict = [{'index': i, 'name': g, "checked": "checked"} for i, g in zip(genre_indices, genres)]
 levels = ['Adult', 'YA', 'Children']
 leveldict = [{'index': l, 'name': l, "checked": "checked"} for l in levels]
@@ -71,10 +66,6 @@ def index():
             scoretype += '_readinglevel'
             idict[1] = {'index': idict[1]['index'], 'name': idict[1]['name'],
                         'checked': 'checked', 'alt': idict[1]['alt']}
-        if 'short' in do_ignore:
-            scoretype += '_booktype'
-            idict[2] = {'index': idict[2]['index'], 'name': idict[2]['name'],
-                        'checked': 'checked', 'alt': idict[1]['alt']}
         if 'author' in do_ignore:
             scoretype += '_author'
             idict[0] = {'index': idict[0]['index'], 'name': idict[0]['name'],
@@ -88,6 +79,10 @@ def index():
         where_clause += ' AND (' + ' OR '.join(do_genres) +')'
     if len(do_levels):
         where_clause += ' AND (' + ' OR '.join(do_levels) +')'
+    if 'booktype' not in do_ignore and False:
+        where_clause += "AND comics!=0 AND short_stories!=0 AND pub_ctype!='COLLECTION' AND pub_ctype!='OMNIBUS' AND title_storylen!='short story'"
+        where_clause += "AND title_storylen!='novelette' AND title_graphic!='Yes'"
+        
     
     sql_query = f"SELECT title, all_authors as author, author_lastname, {scoretype} as score FROM works_flask {where_clause}"
     print(sql_query)
