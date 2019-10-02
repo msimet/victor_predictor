@@ -1,7 +1,7 @@
 from flask import render_template
 from flask import request
 from flask import Markup
-from application import app
+from vp import app
 import pandas as pd
 import psycopg2
 import os

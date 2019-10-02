@@ -103,11 +103,12 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# pickles
+# pickles and non-git-appropriate files
 *.p
 *.npy
 *.gensim*
 *.df
+*.env
 
 # downloader scripts
 goodreads*.py
@@ -120,3 +121,4 @@ get*.py
 # not my code
 bootstrap*
 album.css
+ISFDB.ipynb
