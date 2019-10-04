@@ -132,10 +132,10 @@ def get_all_hugos_winners():
     return pd.read_csv('hugos_data/hugo_votecounts_raw_collated_nomatches.txt.csv')
 
 def get_isfdb_data():
-    return pd.read_pickle('isfdb_hugos_eligible.df')
-
+    return pd.read_pickle('isfdb_data/isfdb_withsites.df')
+    
 def make_database(work_rows, shelf_rows):
-
+    print("Starting database...")
     with open('pg_credentials.p', 'rb') as f:
         credentials = pickle.load(f)
     # Set your postgres username/password, and connection specifics
@@ -154,6 +154,7 @@ def make_database(work_rows, shelf_rows):
     if not database_exists(engine.url):
         create_database(engine.url)
 
+    print("Hugos...")
     all_hugos_data = get_all_hugos_winners()
     prevdict = {}
     for author in all_hugos_data['Author'].unique():
@@ -163,7 +164,6 @@ def make_database(work_rows, shelf_rows):
     hid = list(hugos_data['ID'])
     for row in work_rows:
         if int(row[0]) in hid:
-            print("found it")
             hd = hugos_data.iloc[hid.index(int(row[0]))]
             row += [hd['Winner'], hd['Score']]
         else:
@@ -181,6 +181,7 @@ def make_database(work_rows, shelf_rows):
         else:
             row += [0]
 
+    print("ISFDB...")
     isfdb_data = get_isfdb_data()
     for row in work_rows:
         title_mask = row[1]==isfdb_data['pub_title']
@@ -201,28 +202,66 @@ def make_database(work_rows, shelf_rows):
                 if title_mask:
                     irow = tisfdb_data[tisfdb_data['pub_title'] == title_mask[0]]
                 else:
+                    irow = {'author_annualviews': tisfdb_data['author_annualviews'].values[0],
+                            'author_lastname': tisfdb_data['author_lastname'].values[0],
+                            'pub_id': -1, 
+                            'pub_ctype': 'NOVEL',
+                            'pub_isbn': -1,
+                            'author_id': tisfdb_data['author_id'].values[0],
+                            'author_canonical': tisfdb_data['author_canonical'].values[0],
+                            'title_id': -1, 
+                            'title_storylen': None,
+                            'title_graphic': 'No',
+                            'title_annualviews': None,
+                            'debut_year': tisfdb_data['debut_year'].values[0],
+                            'identifier_value_amazon': None,
+                            'identifier_value_goodreads': None,
+                            'identifier_value_oclc': None,
+                            'identifier_value_bn': None,
+                            'identifier_value_audible': None}
                     if row[9] is not None:
-                        irow = {'pub_year': datetime.date(int(row[9]), 1, 1), 'publisher_id': -1, 'pub_series_num': 0,
-                                'author_annualviews': tisfdb_data['author_annualviews'].values[0],
-                                'author_lastname': tisfdb_data['author_lastname'].values[0]}
+                        irow['pub_year'] = datetime.date(int(row[9]), 1, 1)
                     else:
-                        irow = {'pub_year': None, 'publisher_id': -1, 'pub_series_num': 0,
-                                'author_annualviews': tisfdb_data['author_annualviews'].values[0],
-                                'author_lastname': tisfdb_data['author_lastname'].values[0]}
-
+                        irow['pub_year'] = None
             else:
+                irow = {'author_annualviews': None,
+                        'author_lastname': row[4].split()[-1],
+                        'pub_id': -1, 
+                        'pub_ctype': 'NOVEL',
+                        'pub_isbn': -1,
+                        'author_id': -1,
+                        'author_canonical': row[4],
+                        'title_id': -1, 
+                        'title_storylen': None,
+                        'title_graphic': 'No',
+                        'title_annualviews': None,
+                        'debut_year': None,
+                        'identifier_value_amazon': None,
+                        'identifier_value_goodreads': None,
+                        'identifier_value_oclc': None,
+                        'identifier_value_bn': None,
+                        'identifier_value_audible': None}
                 if row[9] is not None:
-                    irow = {'pub_year': datetime.date(int(row[9]), 1, 1), 'publisher_id': -1, 'pub_series_num': 0, 'author_annualviews': None, 'author_lastname': row[4].split()[-1]}
+                    irow['pub_year'] = datetime.date(int(row[9]), 1, 1)
                 else:
-                    irow = {'pub_year': None, 'publisher_id': -1, 'pub_series_num': 0, 'author_annualviews': None, 'author_lastname': row[4].split()[-1]}
+                    irow['pub_year'] = None
 
         try:
-            row += [irow['pub_year'].values[0], irow['publisher_id'].values[0], irow['pub_series_num'].values[0],
-                    irow['author_annualviews'].values[0], irow['author_lastname'].values[0]]
+            row += [irow['pub_year'].values[0], irow['author_annualviews'].values[0], irow['author_lastname'].values[0],
+                    irow['pub_id'].values[0], irow['pub_ctype'].values[0], irow['pub_isbn'].values[0], irow['author_id'].values[0],
+                    irow['author_canonical'].values[0], irow['title_id'].values[0], irow['title_storylen'].values[0],
+                    irow['title_graphic'].values[0], irow['title_annualviews'].values[0], irow['debut_year'].values[0],
+                    irow['identifier_value_amazon'].values[0], irow['identifier_value_goodreads'].values[0], 
+                    irow['identifier_value_oclc'].values[0], irow['identifier_value_bn'].values[0], irow['identifier_value_audible'].values[0]]
         except AttributeError:
-            row += [irow['pub_year'], irow['publisher_id'], irow['pub_series_num'],
-                    irow['author_annualviews'], irow['author_lastname']]
+            row += [irow['pub_year'], irow['author_annualviews'], irow['author_lastname'],
+                    irow['pub_id'], irow['pub_ctype'], irow['pub_isbn'], irow['author_id'],
+                    irow['author_canonical'], irow['title_id'], irow['title_storylen'],
+                    irow['title_graphic'], irow['title_annualviews'], irow['debut_year'],
+                    irow['identifier_value_amazon'], irow['identifier_value_goodreads'], 
+                    irow['identifier_value_oclc'], irow['identifier_value_bn'], irow['identifier_value_audible']]
 
+    print("Making dataframe")
     main_df = pd.DataFrame(work_rows,
                            columns=['id', 'title', 'is_series', 'author', 'all_authors',
                                     'rating', 'nratings', 'nreviews', 'blurb', 'pubyear', 'language', 'reviews',
@@ -231,7 +270,11 @@ def make_database(work_rows, shelf_rows):
                                     'urban_fantasy', 'children', 'mystery', 'historical',
                                     'high_fantasy', 'mythology', 'humor', 'literature', 'time_travel',
                                     'space', 'lgbt', 'winner', 'true_score', 'nprev', 'pub_date',
-                                    'publisher_id', 'series_num', 'author_annualviews', 'author_lastname']).set_index('id')
+                                    'author_annualviews', 'author_lastname', 'pub_id', 'pub_ctype', 'pub_isbn',
+                                    'author_id', 'author_canonical', 'title_id', 'title_storylen', 
+                                    'title_graphic', 'title_annualviews', 'debut_year', 'identifier_value_amazon',
+                                    'identifier_value_goodreads', 'identifier_value_oclc',
+                                    'identifier_value_bn', 'identifier_value_audible']).set_index('id')
     pubyear = main_df['pub_date']
     def pyr(y):
         try:
@@ -243,15 +286,16 @@ def make_database(work_rows, shelf_rows):
     main_df['pubyear'] = np.min([main_df['pubyear'], pubyear], axis=0)
     shelf_df = pd.DataFrame(shelf_rows, columns=['work_id', 'shelf', 'nshelves'])
 
-    main_df.to_sql('works', engine, if_exists='replace')
+    print("Writing dataframes")
+    main_df.to_sql('works', engine)
     print (len(engine.execute("SELECT * FROM works").fetchall()))
-    shelf_df.to_sql('shelves', engine, index=True, if_exists='replace')
+    shelf_df.to_sql('shelves', engine)
 
 def main():
     main_rows = []
     shelf_rows = []
     if not os.path.exists('processed.p'):
-        files = glob.glob('good_data/bookdata*.p')
+        files = glob.glob('new_data/bookdata*.p')
         for file_name in files:
             row, shelf_row = single_review(file_name)
             if row:
@@ -268,7 +312,7 @@ def main():
 
 def make_csv():
     main_rows = []
-    files = glob.glob('good_data/bookdata*.p')
+    files = glob.glob('new_data/bookdata*.p')
     titles = []
     authors = []
     ids = []
