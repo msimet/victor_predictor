@@ -9,6 +9,7 @@ import difflib
 import numpy as np
 from matplotlib import cm
 from matplotlib.colors import rgb2hex
+import matplotlib.pyplot as plt
 
 username = os.environ['rds_username']
 password = os.environ['rds_password']
@@ -31,16 +32,28 @@ ignore_alts = ["Authors who have won or been nominated for an award are more lik
 ignoredict = [{'index': ig.split()[1], "name": ig, "checked": "", "alt": alt}
               for ig, alt in zip(ignore, ignore_alts)]
 
+def get_links(df, name, main_url, search_url):
+    mask = df[f'identifier_value_{name}'].isna()
+    df[f'identifier_value_{name}'][~mask] = df[f'identifier_value_{name}'][~mask].apply(lambda x: main_url.format(x))
+    if 'audible' not in main_url:
+        mask = df[f'identifier_value_{name}'].isna() & (df['pub_isbn']!='-1')
+        df[f'identifier_value_{name}'][mask] = df['pub_isbn'][mask].apply(lambda x: search_url.format(x))
+    mask = df[f'identifier_value_{name}'].isna()
+    df[f'identifier_value_{name}'][mask] = df.apply(lambda x: search_url.format("{} {}".format(x.title, x.author)), axis=1)
+
 @app.route('/')
 @app.route('/index.html')
 def index():
     do_genres = request.args.getlist('genres')
     do_levels = request.args.getlist('levels')
     do_ignore = request.args.getlist('ignore')
+    hidden_ignore = [{'name': 'ignore', 'value': ig} for ig in do_ignore]
+    hidden_genrelevels = [{'name': 'genres', 'value': ge} for ge in do_genres] + [{'name': 'levels', 'value': le} for le in do_levels]
+
     where_clauses = []
     if len(do_genres) < len(genres) and len(do_genres)>0:
         genre_retlist = [{'index': gd['index'], 'name': gd['name'], 'checked': 'checked' if f'{gd["index"]}' in do_genres else ''} for gd in genredict]
-        do_genres = [f'is_genre{dg} is True' for dg in do_genres if int(dg) in genre_indices]
+        do_genres = [f'is_genre{dg}=True' for dg in do_genres if int(dg) in genre_indices]
     else:
         do_genres = []
         genre_retlist = genredict
@@ -49,15 +62,23 @@ def index():
         level_retlist = [{'index': ld['index'], 'name': ld['name'], 'checked': 'checked' if ld["index"] in do_levels else ''} for ld in leveldict]
         dl = []
         if 'Adult' in do_levels:
-            dl += ['(1.0*children/nreviews < 0.1 AND 1.0*ya/nreviews < 0.1)']
+            dl += ['(1.0*children/(nreviews+1) < 0.1 AND 1.0*ya/(nreviews+1) < 0.1)']
         if 'YA' in do_levels:
-            dl += ['1.0*ya/nreviews >= 0.1']
+            dl += ['1.0*ya/(nreviews+1) >= 0.1']
         if 'Children' in do_levels:
-            dl += ['1.0*children/nreviews >= 0.1']
+            dl += ['1.0*children/(nreviews+1) >= 0.1']
         do_levels = dl
     else:
         do_levels = []
         level_retlist = leveldict
+        
+    quick_test = pd.read_sql_query("SELECT 1.0*children/(nreviews+1) AS children, 1.0*ya/(nreviews+1) AS ya FROM works_flask", con)
+    plt.hist(quick_test['children'][quick_test['children']>0], bins=50)
+    plt.savefig('kids.png')
+    plt.clf()
+    plt.hist(quick_test['ya'][quick_test['ya']>0], bins=50)
+    plt.savefig('ya.png')
+    plt.clf()
 
     scoretype = 'pred_score'
     if len(do_ignore):
@@ -79,18 +100,23 @@ def index():
         where_clause += ' AND (' + ' OR '.join(do_genres) +')'
     if len(do_levels):
         where_clause += ' AND (' + ' OR '.join(do_levels) +')'
-    if 'booktype' not in do_ignore and False:
+    if 'short' not in do_ignore and False:
         where_clause += "AND comics!=0 AND short_stories!=0 AND pub_ctype!='COLLECTION' AND pub_ctype!='OMNIBUS' AND title_storylen!='short story'"
         where_clause += "AND title_storylen!='novelette' AND title_graphic!='Yes'"
         
-    
-    sql_query = f"SELECT title, all_authors as author, author_lastname, {scoretype} as score FROM works_flask {where_clause}"
-    print(sql_query)
-    query_results = pd.read_sql_query(sql_query, con)
+    sql_query = (f"SELECT title, all_authors as author, author_lastname, {scoretype} as score, title_id, "+
+                 f"identifier_value_amazon, identifier_value_bn, identifier_value_goodreads, identifier_value_audible, identifier_value_oclc, "+
+                 f"pub_isbn FROM works_flask {where_clause}")
+    query_results = pd.read_sql_query(sql_query, con).sort_values('score', ascending=False)
+    query_results = pd.concat([query_results[query_results['title_id']==-1], query_results.drop_duplicates('title_id')]).drop_duplicates()
 #    query_results['color'] = [rgb2hex(cm.viridis(s)) for s in query_results['score']]
     query_results['color'] = ["hsl(214, {:.2f}%, 50%)".format(score*100) for score in query_results['score']]
     query_results['link'] = ['']*len(query_results)
-    
+    get_links(query_results, 'amazon', "https://www.amazon.com/dp{}", "https://www.amazon.com/s?k={}")
+    get_links(query_results, 'bn', "http://www.barnesandnoble.com/s/{}", "http://www.barnesandnoble.com/s/{}")
+    get_links(query_results, 'goodreads', "http://www.goodreads.com/book/show/{}", "http://www.goodreads.com/search?q={}")
+    get_links(query_results, 'audible', "https://www.audible.com/pd/{}", "https://www.audible.com/search?keywords={}")
+    get_links(query_results, 'oclc', "http://www.worldcat.org/oclc/{}", "https://www.worldcat.org/search?qt=worldcat_org_all&q={}")
     
     sortby = request.args.get('sortby', 'score')
     direction = request.args.get('direction', 'desc')
@@ -152,7 +178,7 @@ def index():
     prev_urlkeys = urlkeys + ['current_page={}'.format(curr_page-1)]
     next_url = 'index.html?' + '&'.join(next_urlkeys)
     prev_url = 'index.html?' + '&'.join(prev_urlkeys)
-
+    
     return render_template('index.html', 
                            books=query_results.to_dict('records'),
                            genres=genre_retlist,
@@ -164,4 +190,5 @@ def index():
                            next_url=next_url,
                            title_url=title_url, title_arrow=title_arrow,
                            author_url=author_url, author_arrow=author_arrow,
-                           score_url=score_url, score_arrow=score_arrow)
+                           score_url=score_url, score_arrow=score_arrow,
+                           hidden_ignore=hidden_ignore, hidden_genrelevels=hidden_genrelevels)

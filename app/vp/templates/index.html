@@ -41,9 +41,8 @@
         <div class="col-sm-4 offset-md-1 py-4">
           <h4 class="text-white">Contact</h4>
           <ul class="list-unstyled">
-            <li><a href="#" class="text-white">Follow on Twitter</a></li>
-            <li><a href="#" class="text-white">Like on Facebook</a></li>
-            <li><a href="#" class="text-white">Email me</a></li>
+            <li><a href="https://twitter.com/melaniesimet" class="text-white">Follow on Twitter</a></li>
+            <li><a href="https://github.com/msimet/victor_predictor" class="text-white">See the code on GitHub</a></li>
           </ul>
         </div>
       </div>
@@ -83,6 +82,9 @@
             <input type="checkbox" name="levels" value="{{ level['index'] }}" {{ level['checked']}}> {{level['name']}}
             {% endfor %}
             </p>
+            {% for hig in hidden_ignore %}
+            <input type="hidden" name="{{ hig['name'] }}" value="{{ hig['value'] }}">
+            {% endfor %}
             <input type="submit" text="Go!">
         </form>
         </div>
@@ -95,6 +97,9 @@
             <input type="checkbox" name="ignore" value="{{ ig['index'] }}" {{ ig['checked']}}> {{ig['name']}}<sup><a class="more_info" title="{{ ig['alt'] }}" alt="{{ ig['alt'] }}">more info</a></sup><BR />
             {% endfor %}
             </p>
+            {% for hgl in hidden_genrelevels %}
+            <input type="hidden" name="{{ hgl['name'] }}" value="{{ hgl['value'] }}">
+            {% endfor %}
             <input type="submit" text="Go!">
         </form>
         </div>
@@ -105,16 +110,13 @@
   <div class="album py-5 bg-light">
     <div class="container">
       <div class='row gutter10'> 
-                        <div class="col"></div>
                         <div class="col-4 grid-col"><b><a href="{{ title_url }}">Title{{ title_arrow }}</a></b></div>
                         <div class="col-4 grid-col"><b><a href="{{ author_url }}">Author{{ author_arrow }}</a></b></div>
                         <div class="col-1 grid-col"><b><a href="{{ score_url }}">Score{{ score_arrow }}</a></b></div>
-                        <!-- <div class="col-3 grid-col"><b>Links</b></div> -->
-                        <div class="col"></div>
+                        <div class="col-3 grid-col"><center><b><span style="color: #007bff;">Links</span></b></center></div>
       </div>
       {% for book in books %}
       <div class='row gutter10'> 
-                        <div class="col"></div>
                         <div class="col-4 grid-col">{{ book['title'] }}</div>
                         <div class="col-4 grid-col">{{ book['author'] }}</div>
                         <div class="col-1 grid-col">
@@ -126,8 +128,11 @@
                         </b>
                         {% endif %}
                         </div>
-                        <div class="col"></div>
-                        <!-- <div class="col-3 grid-col">{{ book['link'] }}</div> -->
+                        <div class="col-3 grid-col-nopad"><center><a href="{{ book['identifier_value_goodreads'] }}">Goodreads</a> 
+                                                          <a href="{{ book['identifier_value_oclc'] }}">Worldcat</a> <BR /> 
+                                                          <a href="{{ book['identifier_value_bn'] }}">BN</a> 
+                                                          <a href="{{ book['identifier_value_amazon'] }}">Amazon</a> 
+                                                          <a href="{{ book['identifier_value_audible'] }}">Audible</a></center> </div>
       </div>
       {% endfor %}
       {% if npages > 1 %}
