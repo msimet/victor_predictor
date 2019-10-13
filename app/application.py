@@ -1,6 +1,8 @@
-#!/home/msimet/anaconda3/envs/flask/bin/python
+"""
+application.py: Run the VictorPredictor Flask app.
+"""
 
 from vp import app as application
 
-if __name__=='__main__':
+if __name__ == '__main__':
     application.run(debug=True)
