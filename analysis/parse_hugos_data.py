@@ -1,9 +1,17 @@
 """ Pull best novel data from a Hugo Awards html file."""
 
-from bs4 import BeautifulSoup
 import pickle
+from bs4 import BeautifulSoup
 
 def main(filename):
+    """
+    Run through an HTML file from the Hugos website and pull the winner and nominee data, then save it to a pickle file.
+
+    Parameters
+    ==========
+    filename: str
+        The filename to process
+    """
     results = []
     with open(filename) as f:
         soup = BeautifulSoup(f.read(), features="html.parser")
@@ -17,10 +25,8 @@ def main(filename):
                 text = nominee.text.split('by')
                 if text[0] == 'No Award':
                     continue
-                if len(text)==1:
+                if len(text) == 1:
                     text = text[0].split(',')
-                if len(text)==1:
-                    print(text)
                 title = text[0].strip()
                 if title[-1] == ',': # Some say "Ender's Game, by Orson Scott Card"
                     title = title[:-1]
@@ -37,8 +43,7 @@ def main(filename):
 
     with open('hugos_data/hugo_awards_{}.p'.format(filename.split('/')[-1][:4]), 'wb') as f:
         pickle.dump(results, f)
-    print(results)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     import sys
     main(sys.argv[1])
