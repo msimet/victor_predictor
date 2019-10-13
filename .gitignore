@@ -117,8 +117,18 @@ get*.py
 # notes and reminders
 *.txt
 *.dat
+*.png
+*.sh
 
 # not my code
 bootstrap*
 album.css
 ISFDB.ipynb
+
+# For Elastic Beanstalk uploads
+*.zip
+app/vp/local/*
+app/vp/share/*
+app/vpeb/*
+.ebextensions/*
+.ebignore
