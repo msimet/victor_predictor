@@ -92,3 +92,36 @@ def make_regression_array(data, keep_short_stories=False):
 
     data['nratings'] = np.log10(data['nratings'])
     return data, mask
+
+def make_genre_data(df, keep_zeros=False):
+    """
+    Take a dataframe of general works data and return only the data useful for finding genres.
+    keep_zeros means keep data where nratings=0 (useful for predicting genres, bad for training them).
+    """
+    genre_data = df[["nratings", "fantasy", "sf", "horror", "dystopian", "romance", "adventure",
+                     "urban_fantasy", "mystery", "historical", "high_fantasy", "mythology", "humor", "literature",
+                     "time_travel", "space", "id"]]
+    if not keep_zeros:
+        genre_data = genre_data[genre_data['nratings'] > 0]
+    ids = genre_data.pop("id")
+    # Rescale the data by nratings, then get rid of nratings & replace nans and infs with 0
+    genre_data_rescaled = np.array(genre_data.values, dtype=float)
+    genre_data_rescaled /= genre_data_rescaled[:, 0].T[:, None]
+    genre_data_rescaled = genre_data_rescaled[:, 1:]
+    genre_data_rescaled[np.isinf(genre_data_rescaled)] = 0
+    genre_data_rescaled[np.isnan(genre_data_rescaled)] = 0
+    return genre_data_rescaled, ids
+
+def remove_proper_nouns(review):
+    """
+    A utility to remove proper nouns from a set of sentences (split at periods). Proper nouns confuse the
+    topic modeling.
+    """
+    tokens = review.split()
+    review = ' '.join([t for t in tokens if t[:4].lower() != "http"])
+    sentences = review.split('.')
+    sentences = [s.split() for s in sentences]
+    sentences = [' '.join([w for i, w in enumerate(words) if i == 0 or w[0] == w[0].lower()]) for words in
+                 sentences]
+    sentences = [s.lower() for s in sentences]
+    return sentences
